@@ -1,0 +1,120 @@
+📦 Welcome to E-Shop — India's #1 online platform for fashion, electronics, and more.
+
+✨ Key Features Implemented:
+
+1️⃣ Authentication:
+- Users can login using:
+  - Google Sign-In
+  - Email + Password
+  - OTP-based login with email verification
+- Signup requires OTP verification before account creation.
+- Password reset is available using email-based OTP verification.
+
+🔐 Security:
+- All OTPs expire in 5 minutes.
+- Email-based verification is required for login and signup.
+- Password confirmation and error handling are implemented for better UX.
+
+🛒 Cart Features:
+- Users can add items to their cart from the Home or Product Details pages.
+- Cart shows product image, quantity controls (➕➖), subtotal per item, and total.
+- Users can remove individual items or clear the entire cart.
+- "Proceed to Checkout" button is enabled only when items exist in the cart.
+
+💳 Checkout Flow:
+- Users can checkout using either:
+  - Cash on Delivery (COD)
+  - UPI (requires UPI ID)
+- Shipping information fields: Full Name, Address, Phone Number.
+- Orders are saved to `users/{uid}/orders` in Firestore.
+- A confirmation toast and redirect to "Order Success" are shown upon completion.
+
+📦 Order Summary:
+- Order Summary shows:
+  - Product name and quantity
+  - Item price (sale price if available)
+  - Total amount (with free shipping)
+  - Selected payment method
+
+🔥 Deals Page:
+- Products marked with `deal: true` in Firestore are fetched and shown.
+- Discount percentage is calculated and displayed if `salePrice` < `price`.
+- Products include "Add to Cart" with confirmation modal and toast.
+
+🏠 Home Page:
+- Animated Hero section and product search with filters.
+- Category filter available: All, Electronics, Fashion, etc.
+- Products fetched from Firestore and displayed with Add-to-Cart option.
+- Header includes navigation, profile dropdown, and dynamic cart icon.
+
+🎯 Categories:
+- Categories include:
+  - Electronics 💻
+  - Fashion 👗
+  - Home 🏠
+  - Books 📚
+  - Accessories 🎒
+  - Beauty 💄
+  - Toys 🧸
+  - Fitness 🏋️‍♂️
+  - Groceries 🛒
+  - Mobiles 📱
+  - Gaming 🎮
+  - Footwear 👟
+- Stylish layout with emoji icons and hover animations.
+- Categories are navigable to `/category/:categoryName`.
+
+🧠 AI Chatbot (Gemini API):
+- Chatbot is powered by Google Gemini API using `eshop_knowledge.txt`.
+- Users can ask questions about policies, shipping, returns, categories, etc.
+- Chat history appears in the chatbot window.
+- Chatbot fetches answers from static knowledge using generative AI.
+
+🔄 Forgot Password:
+- User enters email → receives OTP → verifies OTP → redirected to reset password.
+- All backend OTPs are sent using Gmail SMTP via FastAPI.
+- Toasts and timers enhance the user experience.
+
+🛂 Signup Flow:
+- Email is verified via OTP using `/api/send-register-otp`.
+- Once OTP is verified, password + confirmation is collected and submitted.
+- Error handling for already-registered emails is included with redirection suggestion.
+
+🎨 UI & Themes:
+- Dark mode supported (optional).
+- Gradient backgrounds on login/signup/forgot pages.
+- Clean, modern input fields with focus states and shadows.
+- Animated loading states, toast notifications, confirmation modals.
+
+📧 Emails:
+- Emails are sent from: rahulrakeshpoojary0@gmail.com via Gmail SMTP
+- Used in:
+  - Forgot password
+  - Signup OTP
+  - Login OTP
+
+🚚 Shipping Policy:
+- Free shipping on orders above ₹999.
+- Orders are shipped within 24 hours.
+- Delivery time: 2–4 days.
+
+🔁 Return Policy:
+- Returns accepted within 7 days of delivery.
+- Refunds processed in 3–5 working days.
+- Contact: support@eshop.com
+
+💰 Payment Methods:
+- UPI
+- Credit/Debit Cards
+- Net Banking
+- Cash on Delivery (COD)
+
+📦 Order Management:
+- View your previous orders in `My Orders`.
+- Order data is stored per user in Firestore.
+- Each order includes payment method, shipping info, and product breakdown.
+
+💬 Contact & Support:
+- Live chatbot available in the bottom right corner.
+- Users can ask for shipping, payment, or return help.
+
