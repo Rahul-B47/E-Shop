@@ -9,6 +9,7 @@ export default function OtpLogin() {
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
   const navigate = useNavigate();
+  const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
   const showToastMsg = (msg) => {
     setToastMessage(msg);
@@ -18,7 +19,7 @@ export default function OtpLogin() {
 
   const handleSendOtp = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/send-otp", {
+      const res = await fetch(`${API_BASE}/api/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -33,7 +34,7 @@ export default function OtpLogin() {
 
   const handleVerifyOtp = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/verify-otp", {
+      const res = await fetch(`${API_BASE}/api/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),

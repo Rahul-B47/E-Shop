@@ -15,6 +15,7 @@ export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [listening, setListening] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
   const synthRef = useRef(window.speechSynthesis);
   const recognitionRef = useRef(null);
@@ -54,7 +55,7 @@ export default function Chatbot() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/chat", {
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input }),

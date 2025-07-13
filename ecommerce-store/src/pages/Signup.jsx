@@ -8,6 +8,8 @@ export default function Signup() {
   const { emailSignup, googleLogin } = useAuth();
   const navigate = useNavigate();
 
+  const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [otpSent, setOtpSent] = useState(false);
@@ -35,14 +37,14 @@ export default function Signup() {
     if (!email) return setError("📧 Please enter your email first!");
 
     try {
-      const res = await fetch("http://localhost:8000/api/send-register-otp", {
+      const res = await fetch(`${API_BASE}/api/send-register-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
 
-      if (data.success === false) {
+      if (!data.success) {
         return setError(data.message || "OTP sending failed.");
       }
 
@@ -70,7 +72,7 @@ export default function Signup() {
     if (otpCode.length !== 6) return setError("⚠️ Enter full OTP.");
 
     try {
-      const res = await fetch("http://localhost:8000/api/verify-register-otp", {
+      const res = await fetch(`${API_BASE}/api/verify-register-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp: otpCode }),
@@ -92,6 +94,8 @@ export default function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    setError("");
+
     if (!otpVerified) return setError("⚠️ Please verify your email OTP first.");
     if (password !== confirm) return setError("⚠️ Passwords do not match!");
 
@@ -126,7 +130,7 @@ export default function Signup() {
         )}
 
         <form onSubmit={handleSignup} className="space-y-5">
-          {/* Email + OTP Send */}
+          {/* Email Input */}
           <div>
             <label className="text-sm mb-1 block">Email 📧</label>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -152,7 +156,7 @@ export default function Signup() {
             </div>
           </div>
 
-          {/* OTP Section */}
+          {/* OTP Input */}
           {otpSent && !otpVerified && (
             <>
               <label className="text-sm mb-1 block">Enter OTP 🔐</label>
@@ -181,7 +185,6 @@ export default function Signup() {
                   Resend OTP {timer > 0 && `(${timer}s)`}
                 </button>
               </div>
-
               <button
                 type="button"
                 onClick={handleVerifyOtp}
@@ -243,7 +246,7 @@ export default function Signup() {
           <span className="font-medium">Sign Up with Google</span>
         </button>
 
-        {/* Already have account */}
+        {/* Navigation to Login */}
         <p className="text-center text-sm text-indigo-100 mt-4">
           Already have an account?{" "}
           <Link to="/login" className="text-yellow-300 font-semibold hover:underline">
@@ -252,7 +255,6 @@ export default function Signup() {
         </p>
       </div>
 
-      {/* Toast */}
       <Toast message={toastMessage} show={showToast} />
     </div>
   );

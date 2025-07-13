@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Toast from "./Toast";
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 export default function OTPInput({ otp, setOtp }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,7 +47,7 @@ export default function OTPInput({ otp, setOtp }) {
 
   const verifyOtp = async (enteredOtp) => {
     try {
-      const res = await fetch("http://localhost:8000/api/verify-otp", {
+      const res = await fetch(`${API_BASE}/api/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp: enteredOtp }),
@@ -69,7 +71,7 @@ export default function OTPInput({ otp, setOtp }) {
     if (!email) return;
     setResending(true);
     try {
-      const res = await fetch("http://localhost:8000/api/send-otp", {
+      const res = await fetch(`${API_BASE}/api/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -125,7 +127,6 @@ export default function OTPInput({ otp, setOtp }) {
         </button>
       </div>
 
-      {/* Toast Notification */}
       <Toast show={showToast} message={toastMessage} success={toastSuccess} />
     </div>
   );

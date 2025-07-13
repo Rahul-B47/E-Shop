@@ -1,4 +1,3 @@
-// pages/OtpVerification.jsx
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import OTPInput from "../components/OTPInput";
@@ -14,9 +13,11 @@ export default function OtpVerification() {
   const location = useLocation();
   const navigate = useNavigate();
   const email = new URLSearchParams(location.search).get("email");
+  const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
   const handleVerify = async () => {
     const enteredOtp = otp.join("");
+
     if (enteredOtp.length !== 6) {
       setToastMessage("Please enter all 6 digits of the OTP.");
       setToastSuccess(false);
@@ -26,13 +27,16 @@ export default function OtpVerification() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/verify-otp", {
+      const res = await fetch(`${API_BASE}/api/verify-otp`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ email, otp: enteredOtp }),
       });
 
       const data = await res.json();
+
       if (data.success) {
         setToastMessage("✅ OTP verified. Redirecting...");
         setToastSuccess(true);
