@@ -10,7 +10,9 @@ export default function ForgotPassword() {
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
   const inputsRef = useRef([]);
+
   const API_BASE = process.env.REACT_APP_API_BASE_URL;
+  console.log("🌍 API_BASE:", API_BASE);
 
   useEffect(() => {
     let interval;
@@ -21,6 +23,7 @@ export default function ForgotPassword() {
   }, [timer, step]);
 
   const showToastMsg = (msg, success = true) => {
+    console.log(success ? "✅" : "❌", msg);
     setToastMessage(msg);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
@@ -30,17 +33,27 @@ export default function ForgotPassword() {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
+    console.log("📨 Sending OTP to:", email);
     try {
       const res = await fetch(`${API_BASE}/api/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
+
+      console.log("📦 Response status:", res.status);
       const data = await res.json();
-      showToastMsg(data.message || "📩 OTP sent to your email!");
-      setStep("otp");
-      setTimer(60);
+      console.log("📦 Response data:", data);
+
+      if (res.ok && data.message) {
+        showToastMsg(data.message || "📩 OTP sent to your email!");
+        setStep("otp");
+        setTimer(60);
+      } else {
+        showToastMsg(data.message || "❌ Failed to send OTP", false);
+      }
     } catch (err) {
+      console.error("❌ Fetch Error:", err);
       showToastMsg("❌ Failed to send OTP", false);
     } finally {
       setLoading(false);
@@ -60,20 +73,27 @@ export default function ForgotPassword() {
     const otp = otpArray.join("");
     if (otp.length !== 6) return;
     setLoading(true);
+    console.log("🔐 Verifying OTP for:", email, "with OTP:", otp);
+
     try {
       const res = await fetch(`${API_BASE}/api/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),
       });
+
+      console.log("📦 Verify OTP Response status:", res.status);
       const data = await res.json();
+      console.log("📦 Verify OTP Response data:", data);
+
       showToastMsg(data.message, data.success);
       if (data.success) {
         setTimeout(() => {
           window.location.href = `/reset-password?email=${email}`;
         }, 2000);
       }
-    } catch {
+    } catch (err) {
+      console.error("❌ OTP verification error:", err);
       showToastMsg("❌ Failed to verify OTP", false);
     } finally {
       setLoading(false);
@@ -81,11 +101,13 @@ export default function ForgotPassword() {
   };
 
   const resendOTP = () => {
+    console.log("🔁 Resending OTP");
     setTimer(60);
     handleSendOTP({ preventDefault: () => {} });
   };
 
   const goBackToEmailStep = () => {
+    console.log("🔙 Going back to email step");
     setStep("email");
     setOtpArray(["", "", "", "", "", ""]);
     setToastMessage("");
