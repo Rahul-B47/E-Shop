@@ -12,7 +12,6 @@ export default function ForgotPassword() {
   const inputsRef = useRef([]);
 
   const API_BASE = process.env.REACT_APP_API_BASE_URL;
-  
   console.log("🌍 API_BASE:", API_BASE);
 
   useEffect(() => {
@@ -35,6 +34,7 @@ export default function ForgotPassword() {
     if (!email) return;
     setLoading(true);
     console.log("📨 Sending OTP to:", email);
+
     try {
       const res = await fetch(`${API_BASE}/api/send-otp`, {
         method: "POST",
@@ -43,10 +43,14 @@ export default function ForgotPassword() {
       });
 
       console.log("📦 Response status:", res.status);
-      const data = await res.json();
+
+      // Safe parsing even if response body is empty
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
+
       console.log("📦 Response data:", data);
 
-      if (res.ok && data.message) {
+      if (res.ok) {
         showToastMsg(data.message || "📩 OTP sent to your email!");
         setStep("otp");
         setTimer(60);
@@ -84,10 +88,13 @@ export default function ForgotPassword() {
       });
 
       console.log("📦 Verify OTP Response status:", res.status);
-      const data = await res.json();
+
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
+
       console.log("📦 Verify OTP Response data:", data);
 
-      showToastMsg(data.message, data.success);
+      showToastMsg(data.message || "✅ OTP verified", data.success);
       if (data.success) {
         setTimeout(() => {
           window.location.href = `/reset-password?email=${email}`;
@@ -126,7 +133,6 @@ export default function ForgotPassword() {
             : "Enter the OTP sent to your email"}
         </p>
 
-        {/* EMAIL STEP */}
         {step === "email" && (
           <form onSubmit={handleSendOTP} className="space-y-5">
             <div>
@@ -140,7 +146,6 @@ export default function ForgotPassword() {
                 placeholder="you@example.com"
               />
             </div>
-
             <button
               type="submit"
               disabled={loading}
@@ -151,7 +156,6 @@ export default function ForgotPassword() {
           </form>
         )}
 
-        {/* OTP STEP */}
         {step === "otp" && (
           <form onSubmit={handleVerifyOTP} className="space-y-6">
             <div className="flex justify-between gap-2">
