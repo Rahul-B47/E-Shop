@@ -25,7 +25,7 @@ app = FastAPI()
 # 🌍 CORS Middleware - allow deployed frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://e-shop-k5it.onrender.com"],  # Deployed React frontend
+    allow_origins=["https://e-shop-frontend-h7yb.onrender.com"],  # Deployed React frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
