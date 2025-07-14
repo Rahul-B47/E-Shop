@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Toast from "../components/Toast";
 
@@ -15,10 +15,22 @@ export default function ResetPassword() {
 
   const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
+  // ✅ Log when component loads
+  useEffect(() => {
+    console.log("🧪 ResetPassword component mounted");
+    console.log("📧 Email from URL:", email);
+    console.log("🌐 API_BASE:", API_BASE);
+  }, [email, API_BASE]);
+
   const handleReset = async (e) => {
     e.preventDefault();
 
+    console.log("🧪 Form submitted");
+    console.log("🔐 Entered Password:", password);
+    console.log("🔐 Confirm Password:", confirm);
+
     if (!password || password !== confirm) {
+      console.log("❌ Password mismatch or empty");
       setToastMessage("❗ Passwords don't match");
       setShowToast(true);
       return;
@@ -27,6 +39,8 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
+      console.log("📡 Sending POST request to:", `${API_BASE}/api/reset-password`);
+
       const res = await fetch(`${API_BASE}/api/reset-password`, {
         method: "POST",
         headers: {
@@ -36,12 +50,16 @@ export default function ResetPassword() {
       });
 
       const data = await res.json();
+      console.log("📨 Server Response:", data);
+
       setToastMessage(data.message || "✅ Password reset!");
 
       if (data.success) {
+        console.log("✅ Success — navigating to /login");
         setTimeout(() => navigate("/login"), 2000);
       }
     } catch (err) {
+      console.error("❌ Error occurred during fetch:", err);
       setToastMessage("❌ Something went wrong");
     } finally {
       setShowToast(true);
@@ -63,7 +81,10 @@ export default function ResetPassword() {
             required
             className="w-full px-4 py-3 bg-white/20 border border-white/30 text-white placeholder-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              console.log("✏️ Password Changed:", e.target.value);
+            }}
           />
           <input
             type="password"
@@ -71,7 +92,10 @@ export default function ResetPassword() {
             required
             className="w-full px-4 py-3 bg-white/20 border border-white/30 text-white placeholder-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
             value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
+            onChange={(e) => {
+              setConfirm(e.target.value);
+              console.log("✏️ Confirm Password Changed:", e.target.value);
+            }}
           />
           <button
             type="submit"
