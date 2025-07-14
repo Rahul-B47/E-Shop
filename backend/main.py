@@ -1,40 +1,63 @@
 from fastapi import FastAPI, Request
-from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from datetime import datetime, timedelta
-import random, smtplib, os, requests
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
+import random, smtplib, os, requests
 
-# Firebase Admin
+# Firebase Admin SDK
 import firebase_admin
 from firebase_admin import credentials, auth
 
-# 🌐 Load .env variables
+# Load .env
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")  # ✅ Frontend domain
 print(f"🔑 GEMINI_API_KEY Loaded: {bool(GEMINI_API_KEY)}")
+print(f"🌐 FRONTEND_URL Allowed: {FRONTEND_URL}")
 
-# 🔐 Firebase Initialization
-cred = credentials.Certificate("firebase-adminsdk.json")
-firebase_admin.initialize_app(cred)
+# Firebase Init
+try:
+    cred = credentials.Certificate("firebase-adminsdk.json")
+    firebase_admin.initialize_app(cred)
+    print("✅ Firebase Admin Initialized")
+except Exception as e:
+    print(f"❌ Firebase Init Error: {e}")
 
-# 🚀 FastAPI Initialization
+# FastAPI App
 app = FastAPI()
 
-# 🌍 CORS Setup: ✅ Critical fix
+# CORS Debug Configuration
+allowed_origins = [
+    FRONTEND_URL,
+    "http://localhost:3000"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://e-shop-frontend-h7yb.onrender.com",  # ✅ your frontend
-        "http://localhost:3000"  # ✅ if testing locally
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ Models
+# Middleware for Logging Requests + CORS
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    origin = request.headers.get("origin")
+    print(f"\n📥 {request.method} {request.url}")
+    print(f"📦 Origin Header: {origin}")
+    if origin in allowed_origins:
+        print("✅ Origin allowed by CORS")
+    else:
+        print("❌ Origin NOT allowed by CORS")
+
+    response = await call_next(request)
+    print(f"📤 Status Code: {response.status_code}\n")
+    return response
+
+# Models
 class OTPRequest(BaseModel):
     email: str
 
@@ -49,13 +72,14 @@ class ResetPasswordRequest(BaseModel):
 class ChatRequest(BaseModel):
     message: str
 
-# 🔐 OTP Store
+# OTP Store
 otp_store = {}
 
-# 📧 Email Function
+# Email Sender
 def send_email(to_email, subject, body):
-    sender_email = "rahulrakeshpoojary0@gmail.com"
-    sender_password = "fxen qljm bhac rzsb"  # App password
+    sender_email = os.getenv("EMAIL_USER")
+    sender_password = os.getenv("EMAIL_PASS")
+    print(f"📨 Sending Email to {to_email}")
 
     msg = MIMEText(body)
     msg["Subject"] = subject
@@ -67,126 +91,131 @@ def send_email(to_email, subject, body):
             smtp.starttls()
             smtp.login(sender_email, sender_password)
             smtp.sendmail(sender_email, to_email, msg.as_string())
-        print(f"📧 Email sent to {to_email}")
+        print("📧 Email sent successfully")
     except Exception as e:
-        print(f"❌ Failed to send email: {e}")
+        print(f"❌ Email sending failed: {e}")
 
-# 🔁 Routes
+# Routes
 @app.get("/")
 async def root():
+    print("✅ Root Endpoint Hit")
     return {"message": "✅ FastAPI backend is live!"}
 
 @app.post("/api/send-otp")
 async def send_otp(data: OTPRequest):
-    otp = str(random.randint(100000, 999999))
-    otp_store[data.email] = {"otp": otp, "expires": datetime.now() + timedelta(minutes=5)}
-    send_email(data.email, "🔐 OTP for Password Reset", f"Your OTP is: {otp}")
-    return {"message": "✅ OTP sent to your email."}
+    print(f"📨 OTP requested for {data.email}")
+    try:
+        otp = str(random.randint(100000, 999999))
+        otp_store[data.email] = {"otp": otp, "expires": datetime.now() + timedelta(minutes=5)}
+        send_email(data.email, "OTP for Password Reset", f"Your OTP is: {otp}")
+        return {"message": "✅ OTP sent"}
+    except Exception as e:
+        print(f"❌ /send-otp error: {e}")
+        return {"message": "❌ Failed to send OTP"}
 
 @app.post("/api/verify-otp")
 async def verify_otp(data: OTPVerifyRequest):
+    print(f"🔍 Verifying OTP for {data.email}")
     record = otp_store.get(data.email)
     if not record:
-        return {"success": False, "message": "❌ OTP not found."}
+        print("❌ No OTP found")
+        return {"success": False, "message": "❌ OTP not found"}
     if datetime.now() > record["expires"]:
-        return {"success": False, "message": "❌ OTP expired."}
+        print("❌ OTP expired")
+        return {"success": False, "message": "❌ OTP expired"}
     if data.otp != record["otp"]:
-        return {"success": False, "message": "❌ Incorrect OTP."}
+        print("❌ Incorrect OTP")
+        return {"success": False, "message": "❌ Incorrect OTP"}
     del otp_store[data.email]
-    return {"success": True, "message": "✅ OTP verified."}
+    print("✅ OTP Verified")
+    return {"success": True, "message": "✅ OTP verified"}
 
 @app.post("/api/reset-password")
 async def reset_password(data: ResetPasswordRequest):
+    print(f"🔒 Password reset requested for {data.email}")
     try:
         user = auth.get_user_by_email(data.email)
         auth.update_user(user.uid, password=data.password)
-        return {"success": True, "message": "✅ Password updated successfully."}
+        print("✅ Password updated")
+        return {"success": True, "message": "✅ Password updated"}
     except auth.UserNotFoundError:
-        return {"success": False, "message": "❌ User not found."}
+        print("❌ User not found")
+        return {"success": False, "message": "❌ User not found"}
     except Exception as e:
-        print("❌ Error updating password:", e)
-        return {"success": False, "message": "❌ Password reset failed."}
+        print(f"❌ Password reset error: {e}")
+        return {"success": False, "message": "❌ Failed to reset password"}
 
 @app.post("/api/send-register-otp")
 async def send_register_otp(data: OTPRequest):
+    print(f"📨 Register OTP for {data.email}")
     try:
         auth.get_user_by_email(data.email)
-        return {"success": False, "message": "📧 Email already registered."}
+        print("❌ Email already exists")
+        return {"success": False, "message": "📧 Already registered"}
     except auth.UserNotFoundError:
         otp = str(random.randint(100000, 999999))
         otp_store[data.email] = {"otp": otp, "expires": datetime.now() + timedelta(minutes=5)}
-        send_email(data.email, "OTP for E-Shop Signup", f"Your OTP is: {otp}")
-        return {"success": True, "message": "✅ OTP sent."}
+        send_email(data.email, "OTP for Signup", f"Your OTP is: {otp}")
+        print("✅ OTP sent for registration")
+        return {"success": True, "message": "✅ OTP sent"}
     except Exception as e:
-        print("❌ Error sending OTP:", e)
-        return {"success": False, "message": "❌ Internal server error."}
+        print(f"❌ Register OTP error: {e}")
+        return {"success": False, "message": "❌ Internal error"}
 
 @app.post("/api/verify-register-otp")
 async def verify_register_otp(data: OTPVerifyRequest):
+    print(f"🔍 Verifying registration OTP for {data.email}")
     record = otp_store.get(data.email)
     if not record:
-        return {"success": False, "message": "❌ OTP not found."}
+        print("❌ No OTP found")
+        return {"success": False, "message": "❌ OTP not found"}
     if datetime.now() > record["expires"]:
-        return {"success": False, "message": "❌ OTP expired."}
+        print("❌ OTP expired")
+        return {"success": False, "message": "❌ OTP expired"}
     if data.otp != record["otp"]:
-        return {"success": False, "message": "❌ Incorrect OTP."}
+        print("❌ OTP incorrect")
+        return {"success": False, "message": "❌ Incorrect OTP"}
     del otp_store[data.email]
-    return {"success": True, "message": "✅ Email verified for signup."}
+    print("✅ Registration OTP verified")
+    return {"success": True, "message": "✅ Verified"}
 
 @app.post("/api/chat")
 async def chatbot(req: ChatRequest):
-    user_message = req.message
-    print(f"📨 Message: {user_message}")
-
+    print(f"💬 Chat received: {req.message}")
     try:
         if not os.path.exists("eshop_knowledge.txt"):
-            return {"reply": "⚠️ Setup incomplete. Knowledge file missing."}
+            print("❌ File eshop_knowledge.txt missing")
+            return {"reply": "⚠️ Setup incomplete"}
 
         with open("eshop_knowledge.txt", "r", encoding="utf-8") as file:
             knowledge = file.read()
 
-        prompt = f"""
-You are a helpful AI assistant for an Indian e-commerce website called E-Shop.
-
-Here is the latest info about E-Shop:
+        prompt = f"""You are a helpful AI assistant for E-Shop.
+Knowledge base:
 {knowledge}
-
-User: {user_message}
+User: {req.message}
 Bot:"""
 
         url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
         headers = {"Content-Type": "application/json"}
         params = {"key": GEMINI_API_KEY}
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
-        response = requests.post(
-            url,
-            headers=headers,
-            params=params,
-            json={"contents": [{"parts": [{"text": prompt}]}]}
-        )
+        response = requests.post(url, headers=headers, params=params, json=payload)
+        result = response.json()
+        print("🌐 Gemini API Response:", result)
 
-        data = response.json()
-        print("🌐 Gemini Response:", data)
-
-        if "candidates" not in data:
-            return {"reply": "⚠️ Gemini API error."}
-
-        reply = data["candidates"][0]["content"]["parts"][0]["text"]
+        if "candidates" not in result:
+            return {"reply": "⚠️ Gemini API Error"}
+        reply = result["candidates"][0]["content"]["parts"][0]["text"]
+        print(f"🤖 Bot Reply: {reply}")
         return {"reply": reply}
 
     except Exception as e:
-        print("❌ Gemini Error:", e)
-        return {"reply": "⚠️ Chatbot temporarily unavailable."}
+        print(f"❌ Chatbot error: {e}")
+        return {"reply": "⚠️ Chatbot down"}
 
 @app.post("/api/test")
-async def test_post():
-    print("✅ /api/test endpoint hit.")
-    return {"message": "POST request is working!"}
-
-# Logging Middleware
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    print(f"📥 Request: {request.method} {request.url}")
-    response = await call_next(request)
-    print(f"📤 Response: {response.status_code}")
-    return response
+async def test():
+    print("🧪 Test endpoint hit")
+    return {"message": "✅ POST test successful"}
