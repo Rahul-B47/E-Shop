@@ -1,5 +1,6 @@
 node_modules/
-build/
+build/*
+!build/static.json
 dist/
 __pycache__/
 *.pyc

@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Toast from "../components/Toast";
 
 export default function ForgotPassword() {
+  const navigate = useNavigate(); // ✅ useNavigate for routing
+
   const [email, setEmail] = useState("");
   const [otpArray, setOtpArray] = useState(["", "", "", "", "", ""]);
   const [step, setStep] = useState("email");
@@ -12,7 +15,6 @@ export default function ForgotPassword() {
   const inputsRef = useRef([]);
 
   const API_BASE = process.env.REACT_APP_API_BASE_URL;
-  console.log("🌍 API_BASE:", API_BASE);
 
   useEffect(() => {
     let interval;
@@ -23,7 +25,6 @@ export default function ForgotPassword() {
   }, [timer, step]);
 
   const showToastMsg = (msg, success = true) => {
-    console.log(success ? "✅" : "❌", msg);
     setToastMessage(msg);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
@@ -32,23 +33,16 @@ export default function ForgotPassword() {
   const handleSendOTP = async (e) => {
     e.preventDefault();
     if (!email) return;
-    setLoading(true);
-    console.log("📨 Sending OTP to:", email);
 
+    setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
-      console.log("📦 Response status:", res.status);
-
-      // Safe parsing even if response body is empty
       const text = await res.text();
       const data = text ? JSON.parse(text) : {};
-
-      console.log("📦 Response data:", data);
 
       if (res.ok) {
         showToastMsg(data.message || "📩 OTP sent to your email!");
@@ -58,7 +52,6 @@ export default function ForgotPassword() {
         showToastMsg(data.message || "❌ Failed to send OTP", false);
       }
     } catch (err) {
-      console.error("❌ Fetch Error:", err);
       showToastMsg("❌ Failed to send OTP", false);
     } finally {
       setLoading(false);
@@ -77,9 +70,8 @@ export default function ForgotPassword() {
     e.preventDefault();
     const otp = otpArray.join("");
     if (otp.length !== 6) return;
-    setLoading(true);
-    console.log("🔐 Verifying OTP for:", email, "with OTP:", otp);
 
+    setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/verify-otp`, {
         method: "POST",
@@ -87,21 +79,16 @@ export default function ForgotPassword() {
         body: JSON.stringify({ email, otp }),
       });
 
-      console.log("📦 Verify OTP Response status:", res.status);
-
       const text = await res.text();
       const data = text ? JSON.parse(text) : {};
-
-      console.log("📦 Verify OTP Response data:", data);
 
       showToastMsg(data.message || "✅ OTP verified", data.success);
       if (data.success) {
         setTimeout(() => {
-          window.location.href = `/reset-password?email=${email}`;
+          navigate(`/reset-password?email=${encodeURIComponent(email)}`); // ✅ Use navigate
         }, 2000);
       }
     } catch (err) {
-      console.error("❌ OTP verification error:", err);
       showToastMsg("❌ Failed to verify OTP", false);
     } finally {
       setLoading(false);
@@ -109,13 +96,11 @@ export default function ForgotPassword() {
   };
 
   const resendOTP = () => {
-    console.log("🔁 Resending OTP");
     setTimer(60);
     handleSendOTP({ preventDefault: () => {} });
   };
 
   const goBackToEmailStep = () => {
-    console.log("🔙 Going back to email step");
     setStep("email");
     setOtpArray(["", "", "", "", "", ""]);
     setToastMessage("");
@@ -124,9 +109,7 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-gradient-to-br from-[#2C3E50] via-[#4CA1AF] to-[#2C3E50]">
       <div className="w-full max-w-md bg-white/10 text-white backdrop-blur-lg border border-white/20 rounded-2xl shadow-xl p-6 sm:p-8 space-y-6">
-        <h1 className="text-3xl font-bold text-center text-indigo-200">
-          Forgot Password
-        </h1>
+        <h1 className="text-3xl font-bold text-center text-indigo-200">Forgot Password</h1>
         <p className="text-sm text-indigo-100 text-center">
           {step === "email"
             ? "Enter your email to receive a 6-digit OTP"
@@ -135,17 +118,14 @@ export default function ForgotPassword() {
 
         {step === "email" && (
           <form onSubmit={handleSendOTP} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 bg-white/20 border border-white/30 text-white placeholder-gray-200 rounded-md focus:ring-2 focus:ring-indigo-400 outline-none"
-                placeholder="you@example.com"
-              />
-            </div>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 bg-white/20 border border-white/30 text-white placeholder-gray-200 rounded-md focus:ring-2 focus:ring-indigo-400 outline-none"
+              placeholder="you@example.com"
+            />
             <button
               type="submit"
               disabled={loading}
@@ -204,11 +184,7 @@ export default function ForgotPassword() {
         )}
       </div>
 
-      <Toast
-        message={toastMessage}
-        show={showToast}
-        success={!toastMessage?.startsWith("❌")}
-      />
+      <Toast message={toastMessage} show={showToast} success={!toastMessage?.startsWith("❌")} />
     </div>
   );
 }
