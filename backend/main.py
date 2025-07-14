@@ -130,20 +130,43 @@ async def verify_otp(data: OTPVerifyRequest):
     print("✅ OTP Verified")
     return {"success": True, "message": "✅ OTP verified"}
 
+from fastapi import HTTPException
+import traceback
+
 @app.post("/api/reset-password")
 async def reset_password(data: ResetPasswordRequest):
     print(f"🔒 Password reset requested for {data.email}")
+
     try:
+        # Try to get the Firebase user
         user = auth.get_user_by_email(data.email)
+        print(f"👤 Found user: UID = {user.uid}")
+
+        # Try to update the user's password
         auth.update_user(user.uid, password=data.password)
-        print("✅ Password updated")
-        return {"success": True, "message": "✅ Password updated"}
+        print("✅ Password updated successfully")
+
+        return {
+            "success": True,
+            "message": "✅ Password updated"
+        }
+
     except auth.UserNotFoundError:
-        print("❌ User not found")
-        return {"success": False, "message": "❌ User not found"}
+        print("❌ User not found in Firebase")
+        return {
+            "success": False,
+            "message": "❌ User not found"
+        }
+
     except Exception as e:
-        print(f"❌ Password reset error: {e}")
-        return {"success": False, "message": "❌ Failed to reset password"}
+        print("❌ Exception occurred during password reset:")
+        traceback.print_exc()  # 🔍 Prints detailed error in backend logs
+
+        return {
+            "success": False,
+            "message": f"❌ Failed to reset password: {str(e)}"
+        }
+
 
 @app.post("/api/send-register-otp")
 async def send_register_otp(data: OTPRequest):
