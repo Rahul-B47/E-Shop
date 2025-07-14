@@ -10,28 +10,31 @@ from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials, auth
 
-# 🌐 Load environment variables
+# 🌐 Load .env variables
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 print(f"🔑 GEMINI_API_KEY Loaded: {bool(GEMINI_API_KEY)}")
 
 # 🔐 Firebase Initialization
-cred = credentials.Certificate("firebase-adminsdk.json")  # Keep this file safe!
+cred = credentials.Certificate("firebase-adminsdk.json")
 firebase_admin.initialize_app(cred)
 
-# 🚀 FastAPI App Initialization
+# 🚀 FastAPI Initialization
 app = FastAPI()
 
-# 🌍 CORS Middleware - allow deployed frontend
+# 🌍 CORS Setup: ✅ Critical fix
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://e-shop-frontend-h7yb.onrender.com"],  # Deployed React frontend
+    allow_origins=[
+        "https://e-shop-frontend-h7yb.onrender.com",  # ✅ your frontend
+        "http://localhost:3000"  # ✅ if testing locally
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 📦 Pydantic Models
+# ✅ Models
 class OTPRequest(BaseModel):
     email: str
 
@@ -46,13 +49,13 @@ class ResetPasswordRequest(BaseModel):
 class ChatRequest(BaseModel):
     message: str
 
-# 🧠 In-memory OTP Store
+# 🔐 OTP Store
 otp_store = {}
 
-# 📧 Email Sending Function
+# 📧 Email Function
 def send_email(to_email, subject, body):
     sender_email = "rahulrakeshpoojary0@gmail.com"
-    sender_password = "fxen qljm bhac rzsb"  # Gmail App Password
+    sender_password = "fxen qljm bhac rzsb"  # App password
 
     msg = MIMEText(body)
     msg["Subject"] = subject
@@ -69,8 +72,10 @@ def send_email(to_email, subject, body):
         print(f"❌ Failed to send email: {e}")
 
 # 🔁 Routes
+@app.get("/")
+async def root():
+    return {"message": "✅ FastAPI backend is live!"}
 
-# Send OTP for Reset
 @app.post("/api/send-otp")
 async def send_otp(data: OTPRequest):
     otp = str(random.randint(100000, 999999))
@@ -78,7 +83,6 @@ async def send_otp(data: OTPRequest):
     send_email(data.email, "🔐 OTP for Password Reset", f"Your OTP is: {otp}")
     return {"message": "✅ OTP sent to your email."}
 
-# Verify OTP for Reset
 @app.post("/api/verify-otp")
 async def verify_otp(data: OTPVerifyRequest):
     record = otp_store.get(data.email)
@@ -91,7 +95,6 @@ async def verify_otp(data: OTPVerifyRequest):
     del otp_store[data.email]
     return {"success": True, "message": "✅ OTP verified."}
 
-# Reset Password
 @app.post("/api/reset-password")
 async def reset_password(data: ResetPasswordRequest):
     try:
@@ -104,7 +107,6 @@ async def reset_password(data: ResetPasswordRequest):
         print("❌ Error updating password:", e)
         return {"success": False, "message": "❌ Password reset failed."}
 
-# Send OTP for Signup
 @app.post("/api/send-register-otp")
 async def send_register_otp(data: OTPRequest):
     try:
@@ -119,7 +121,6 @@ async def send_register_otp(data: OTPRequest):
         print("❌ Error sending OTP:", e)
         return {"success": False, "message": "❌ Internal server error."}
 
-# Verify OTP for Signup
 @app.post("/api/verify-register-otp")
 async def verify_register_otp(data: OTPVerifyRequest):
     record = otp_store.get(data.email)
@@ -132,7 +133,6 @@ async def verify_register_otp(data: OTPVerifyRequest):
     del otp_store[data.email]
     return {"success": True, "message": "✅ Email verified for signup."}
 
-# Gemini Chatbot
 @app.post("/api/chat")
 async def chatbot(req: ChatRequest):
     user_message = req.message
@@ -178,13 +178,12 @@ Bot:"""
         print("❌ Gemini Error:", e)
         return {"reply": "⚠️ Chatbot temporarily unavailable."}
 
-# Test API
 @app.post("/api/test")
 async def test_post():
     print("✅ /api/test endpoint hit.")
     return {"message": "POST request is working!"}
 
-# Middleware for Logging
+# Logging Middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     print(f"📥 Request: {request.method} {request.url}")
