@@ -3,5 +3,4 @@ uvicorn
 firebase-admin
 python-dotenv
 requests
-smtplib
 email-validator
