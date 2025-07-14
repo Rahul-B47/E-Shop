@@ -1,10 +1,10 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
-import random, smtplib, os, requests
+import random, smtplib, os, requests, traceback, json, base64
 
 # Firebase Admin SDK
 import firebase_admin
@@ -13,27 +13,31 @@ from firebase_admin import credentials, auth
 # Load .env
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")  # ✅ Frontend domain
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+FIREBASE_KEY_BASE64 = os.getenv("FIREBASE_KEY_BASE64")
+
 print(f"🔑 GEMINI_API_KEY Loaded: {bool(GEMINI_API_KEY)}")
 print(f"🌐 FRONTEND_URL Allowed: {FRONTEND_URL}")
+print(f"🛡️ Firebase key loaded from base64: {bool(FIREBASE_KEY_BASE64)}")
 
-# Firebase Init
+# Firebase Init from base64 string
 try:
-    cred = credentials.Certificate("firebase-adminsdk.json")
+    if not FIREBASE_KEY_BASE64:
+        raise Exception("FIREBASE_KEY_BASE64 is missing!")
+
+    decoded_bytes = base64.b64decode(FIREBASE_KEY_BASE64)
+    cred_data = json.loads(decoded_bytes.decode("utf-8"))
+    cred = credentials.Certificate(cred_data)
     firebase_admin.initialize_app(cred)
-    print("✅ Firebase Admin Initialized")
+    print("✅ Firebase Admin Initialized via base64")
 except Exception as e:
     print(f"❌ Firebase Init Error: {e}")
 
 # FastAPI App
 app = FastAPI()
 
-# CORS Debug Configuration
-allowed_origins = [
-    FRONTEND_URL,
-    "http://localhost:3000"
-]
-
+# CORS Setup
+allowed_origins = [FRONTEND_URL, "http://localhost:3000"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -42,7 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Middleware for Logging Requests + CORS
+# CORS + Request Logging Middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     origin = request.headers.get("origin")
@@ -130,43 +134,22 @@ async def verify_otp(data: OTPVerifyRequest):
     print("✅ OTP Verified")
     return {"success": True, "message": "✅ OTP verified"}
 
-from fastapi import HTTPException
-import traceback
-
 @app.post("/api/reset-password")
 async def reset_password(data: ResetPasswordRequest):
     print(f"🔒 Password reset requested for {data.email}")
-
     try:
-        # Try to get the Firebase user
         user = auth.get_user_by_email(data.email)
         print(f"👤 Found user: UID = {user.uid}")
-
-        # Try to update the user's password
         auth.update_user(user.uid, password=data.password)
         print("✅ Password updated successfully")
-
-        return {
-            "success": True,
-            "message": "✅ Password updated"
-        }
-
+        return {"success": True, "message": "✅ Password updated"}
     except auth.UserNotFoundError:
         print("❌ User not found in Firebase")
-        return {
-            "success": False,
-            "message": "❌ User not found"
-        }
-
+        return {"success": False, "message": "❌ User not found"}
     except Exception as e:
         print("❌ Exception occurred during password reset:")
-        traceback.print_exc()  # 🔍 Prints detailed error in backend logs
-
-        return {
-            "success": False,
-            "message": f"❌ Failed to reset password: {str(e)}"
-        }
-
+        traceback.print_exc()
+        return {"success": False, "message": f"❌ Failed to reset password: {str(e)}"}
 
 @app.post("/api/send-register-otp")
 async def send_register_otp(data: OTPRequest):
@@ -233,7 +216,6 @@ Bot:"""
         reply = result["candidates"][0]["content"]["parts"][0]["text"]
         print(f"🤖 Bot Reply: {reply}")
         return {"reply": reply}
-
     except Exception as e:
         print(f"❌ Chatbot error: {e}")
         return {"reply": "⚠️ Chatbot down"}
