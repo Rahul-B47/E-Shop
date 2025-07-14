@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { HashRouter as Router, Routes, Route } from "react-router-dom"; // ✅ Changed here
 import Home from "./pages/Home";
 import Cart from "./pages/Cart";
 import ProductDetails from "./pages/ProductDetails";
@@ -15,19 +15,18 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import DeleteProduct from "./pages/DeleteProduct";
 import EditProduct from "./pages/EditProduct";
-import Shop from "./pages/Shop"; // // ✅ Import here
+import Shop from "./pages/Shop";
 import CategoryProducts from "./pages/CategoryProducts";
 import Categories from "./pages/Categories";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-
 
 import { AuthProvider } from "./context/AuthContext";
 
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router> {/* ✅ Now using HashRouter */}
         <Routes>
           {/* ✅ Public Routes */}
           <Route path="/" element={<Home />} />
