@@ -208,15 +208,7 @@ REACT_APP_API_BASE_URL=https://e-shop-k5it.onrender.com
 
 ---
 
-## ✨ Screenshots (Add if needed)
 
-Upload screenshots in `/docs/screenshots/` and embed like this:
-
-```markdown
-![Home Page](docs/screenshots/homepage.png)
-```
-
----
 
 ## 👨‍💻 Author
 
